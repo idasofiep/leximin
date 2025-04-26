@@ -5,9 +5,31 @@ Overview
 ========
 This repository containts implementation of different leximin algorithms. The intention is to analyse and compare different leximin methods.
 
-The main program and methods can be found in the leximin.py file.
+The main program and methods can be found in the implementations.py file.
 
 There are two types of problems that can be solved: allocations and distributions. 
+
+Running the program
+===================
+Some example data files are provided to run the different algorithms.
+
+Testing the ordered outcomes method using the large allocation example:
+```
+$ python implementations.py oo large.csv
+
+```
+
+Testing the ordered values method with the large allocation example:
+```
+$ python implementations.py ov large.csv
+
+```
+
+Testing the saturation method using the large convex allocation example:
+```
+$ python implementations.py sat large_convex.csv
+
+```
 
 
 Algorithms
@@ -16,8 +38,9 @@ Algorithms
 ### Ordered Outcomes Method
 A general formula for finding leximin optimal solutions. 
 
-Described here:
-* Ogryczak and Sliwinśki [On Direct Methods for Lexicographic Min-Max Optimization](https://link.springer.com/chapter/10.1007/11751595_85)
+[On Direct Methods for Lexicographic Min-Max Optimization]
+Ogryczak and Sliwinśki (2006)
+(https://link.springer.com/chapter/10.1007/11751595_85)
 
 The original multi-objective leximin problem is transformed to a lexicographic optimization problem, where N (number of agents) single objective programs are solved in turn and their result added to the optimization model. The method has been shown to be uneffective or non-usable for too large problems, but can be particularily useful for non-convex or continous problems that can not be solved by ordered values or saturation methods. This method is also possible to use in approximation leximin algorithms. 
 
@@ -39,53 +62,48 @@ The running time for this method is far better than ordered outcomes, which can 
 Another nice thing with this method is that you don'† necessarily need to know all possible values, as long as the set of values containt all possible values it does not matter if the set also contains values that are not part of the possible values set. So if you know that a problem instance have only integer function values between 0 and 200, but you don't know or find it to take too much resources to calculate the exact possible values, you can use all integers between 0 and 200 and the method will still give the correct result. 
 
 ### Saturation Method
+The saturation method is mentioned in a lot of papers and there are several variants of the algorithm.
+https://en.wikipedia.org/wiki/Lexicographic_max-min_optimization#cite_note-:8-1 
+
+The first description of this method was by Alexander Kopelowitz in the article:
+"COMPUTATION OF THE KERNELS OF SIMPLE GAMES AND THE NUCLEOLUS OF N-PERSON GAMES" (1967)
+https://apps.dtic.mil/sti/citations/AD0661382
+
+Other relevant papers using this method: 
+
+[Leximin Allocations in the Real World]
+Kurokawa, Procaccia & Shah (2018) 
+(https://doi.org/10.1145/327464)
+
+[Fair algorithms for selecting citizens’ assemblies]
+Flanigan et al. (2021)
+(https://doi.org/10.1038/s41586-021-03788-6)
+
+The method ONLY works for convex problems, so the feasible set needs to be a convex set and the objective functions needs to be concave. 
+For instance, allocation problems with several different optimal solutions (different ordered final values) can not be solved using this method.
+
+The method works like this:
+For each iteration, it finds a value z_max, that is the maximal function value for the lowest value objective that is not yet blocked. Then the method look for objectives that can not increase their function value above z_max without decreasing some other function's value below z_max. These functions are then set to be equal to z_max and blocked or saturated.
+
+For each iteration, at least one function is blocked, so the method runs at most as many iterations as there are functions. 
 
 
-For every free objective f_j :
+while some objective f_j(x) is free:
 Solve the following single-objective problem:
 
-max f_j(x):
-subject to x in X,
-f_k(x) >= z_k for all saturated objectives k,
-f_k(x) >= z_max for all free objectives k
+max  z
+s.t. x in X,
+f_k(x) == z_k for all saturated objectives k,
+f_k(x) >= z for all free objectives k
 
-If the optimal value equals z_max, then objective j becomes saturated from now on.
-otherwise, the optimal value must be larger than z_max; objective j remains free for now. 
-
-
-
-Running the program
-===================
-Some example data files are provided to run the different algorithms.
-
-Testing the ordered outcomes method using the large allocation example:
-```
-$ python3 leximin.py large.csv oo
-
-```
-
-Testing the ordered values method with the large allocation example:
-```
-$ python3 leximin.py large.csv ov
-
-```
-
-Testing the saturation method using the large allocation example:
-```
-$ python3 leximin.py large.csv sa
-
-```
-
-Testing the saturation method using the large sortition example:
-```
-$ python3 leximin.py large.csv so
-
-```
-
+* If the problem is infeasible or unbounded, stop and declare that there is no solution.
+* Otherwise, let z_max be the maximum value of the first problem.
+* Look for free objectives whose value cannot increase above z_max without decreasing some other objective below z_max
+* In any lexmaxmin solution, the value of any such objective must be exactly z_max. Add all such objectives to the set of saturated objectives and set their saturation value to z_max.
 
 Citizens Assemblies
 ==========
-Citizens Assemblies are interesting as there has been done a lot of research about it lately, and it's one of few real life examples I have found that use an implementation of leximin/leximax optimization. The general framework for generating citizen's assembly are described in the article "Fair Algorithms for selection Citizen's assemblies" (https://www.researchgate.net/publication/353697325_Fair_algorithms_for_selecting_citizens'_assemblies) 
+Citizens Assemblies are interesting as there has been done a lot of research about it lately, and it's a real life examples that use an implementation of leximin/leximax optimization. The general framework for generating citizen's assembly are described in the article "Fair Algorithms for selection Citizen's assemblies" (https://www.researchgate.net/publication/353697325_Fair_algorithms_for_selecting_citizens'_assemblies) 
 
 The implementation of the framwork can be found here:
 https://github.com/sortitionfoundation/stratification-app/tree/main

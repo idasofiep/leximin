@@ -30,8 +30,6 @@ def read_csv(filename):
                 for val in line:
                     values.append(int(val))
                 instance.append(values)
-        assert len(instance) != 0
-        assert len(instance[0]) != 0
     except OSError as e:
         print(f"{type(e)}: {e}")
     return instance
@@ -151,6 +149,64 @@ def create_integer_func_values(instance):
         value_list.append(i)
     return value_list
 
+
+
+"""
+SATURATION ALGORITHM FOR ALLOCATION PROBLEMS
+
+While there exists free objectives:
+
+max z
+s.t.  x in X,
+      f_k(x) >= fixed_values[k]      for all saturated objectives k,
+      f_k(x) >= z                    for all free objectives k
+
+If the optimal f_j(x) value equals z, then objective j becomes saturated from now on.
+otherwise, the optimal value must be larger than z; objective j remains free for now. 
+
+"""
+def saturation_allocation(instance):
+    M = len(instance) # number of agents
+    N = len(instance[0]) # number of items
+    
+    grb.setParam("OutputFlag", 0)
+    eps = 0.0001
+
+    fixed_agents = 0 # counter for fixed agents
+    fixed_values = [0]*M # fixed value for agent i's function
+    fixed_binary = [0]*M # indicate wether agent i is fixed or not
+
+    
+    while (fixed_agents < M):
+        model = Model()
+        A = model.addMVar((M,N), vtype=GRB.BINARY, name="A") # Allocation matrix.
+        model.addConstrs((sum(A[i,j] for i in range(M)) <= 1 + eps) for j in range(N)) # N constraints, ensure no item can be allocated to more than one agent.
+        model.addConstrs((sum(A[i,j] for i in range(M)) >= 1 - eps) for j in range(N)) # N constraints, ensure all items must be allocated
+
+        funcs = [sum(instance[i][j]*A[i,j] for j in range(N)) for i in range(M)] # M value functions, one for each agent.
+
+        z = model.addVar(vtype=GRB.CONTINUOUS, name="z")
+        for i in range(M):
+            if (fixed_binary[i] < 0.5):
+                model.addConstr(funcs[i] >= z)
+            else:
+                model.addConstr(funcs[i] >= fixed_values[i])
+
+        model.setObjective(z, GRB.MAXIMIZE)
+        model.optimize()
+        objectiveValue = model.objVal
+
+        for i in range(M):
+            if (fixed_binary[i] < 0.5):
+                func_value = sum(instance[i][j]*A[i,j].x for j in range(N)) # agent i's objective function value for this allocation
+                if ((func_value < objectiveValue + eps) & (func_value > objectiveValue - eps)):
+                    # agent i's objective value can not be improved so the agent is now fixed
+                    fixed_values[i] = objectiveValue
+                    fixed_binary[i] = 1
+                    fixed_agents+=1
+    
+    return A, model
+
 """
 Helper method to show results of allocations
 """
@@ -174,7 +230,7 @@ def print_allocation_result(allocation, instance):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("problemtype", type=str, help="problem type, either allocation or stratification")
-    parser.add_argument("solvertype", type=str, help="solver algorithm, either oo (ordered outcomes), ov (ordered values), di (distribution) or so")
+    parser.add_argument("solvertype", type=str, help="solver algorithm, either oo (ordered outcomes), ov (ordered values), sat (saturation)")
     parser.add_argument("filename", type=str, help="filename input (str)")
     args = parser.parse_args()
     filename = args.filename
@@ -195,6 +251,12 @@ if __name__ == '__main__':
             values_list = create_integer_func_values(instance)
             A, model = ordered_values_allocation(instance, values_list)
         
+        #SATURATION METHOD
+        elif (solvertype == "sat"):
+            instance = read_csv("examples/allocations/" + filename)
+            A, model = saturation_allocation(instance)
+        
+
         print_allocation_result(A, instance)
 
         
