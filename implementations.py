@@ -55,10 +55,11 @@ def ordered_outcomes_allocation(instance):
     M = len(instance) # number of agents
     N = len(instance[0]) # number of items
 
-    grb.setParam("OutputFlag", 0)
+    grb.setParam("OutputFlag", 1)
     eps = 0.0001
 
     model = Model()
+    # model.setParam("Method", 2)
     A = model.addMVar((M,N), vtype=GRB.BINARY, name="A") # Allocation matrix.
     t = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, name="t") # list of t variables of length M, one for each agent. All real numbers. 
     d = model.addMVar((M,M), vtype=GRB.CONTINUOUS, lb=0., name="d") # d matrix, of length M x M. Only positive values.
@@ -204,8 +205,26 @@ def saturation_allocation(instance):
                     fixed_values[i] = objectiveValue
                     fixed_binary[i] = 1
                     fixed_agents+=1
+                    break
     
     return A, model
+
+"""
+Helper method to get sorted allocation values list
+"""
+def get_allocation_values(allocation, instance):
+    values = []
+    for i in range(len(instance)):
+        assigned = []
+        value = 0
+        for j in range(len(instance[0])):
+            if allocation[i][j].X > 0.5:
+                assigned.append(j+1)
+                value += instance[i][j]
+        values.append(value)
+    values.sort()
+    return values
+
 
 """
 Helper method to show results of allocations
@@ -216,15 +235,11 @@ def print_allocation_result(allocation, instance):
     print("")
     print(allocation.X)
     print("")
-        
-    for i in range(len(instance)):
-        assigned = []
-        value = 0
-        for j in range(len(instance[0])):
-            if allocation[i][j].X > 0.5:
-                assigned.append(j+1)
-                value += instance[i][j]
-        print("Agent " + str(i+1) + " is assigned items " + str(assigned) + " with a value sum of " + str(value))
+
+    values = get_allocation_values(allocation, instance)
+
+    print("LEXIMIN SORTED VALUES: ")
+    print(values)
 
 
 if __name__ == '__main__':
@@ -256,8 +271,8 @@ if __name__ == '__main__':
             instance = read_csv("examples/allocations/" + filename)
             A, model = saturation_allocation(instance)
         
-
         print_allocation_result(A, instance)
+
 
         
         

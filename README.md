@@ -15,19 +15,19 @@ Some example data files are provided to run the different algorithms.
 
 Testing the ordered outcomes method using the large allocation example:
 ```
-$ python implementations.py oo large.csv
+$ python implementations.py allocations oo large.csv
 
 ```
 
 Testing the ordered values method with the large allocation example:
 ```
-$ python implementations.py ov large.csv
+$ python implementations.py ov allocations large.csv
 
 ```
 
 Testing the saturation method using the large convex allocation example:
 ```
-$ python implementations.py sat large_convex.csv
+$ python implementations.py sat allocations large_convex.csv
 
 ```
 
