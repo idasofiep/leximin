@@ -83,6 +83,60 @@ def ordered_outcomes_allocation(instance):
     
     return A, model
 
+"""
+ORDERED OUTCOMES ALGORITHM FOR STRATIFICATION PROBLEMS
+
+Solve allocation problems with the Leximin Ordered Outcomes method described by Ogryczak and Sliwinśki in:
+"On Direct Methods for Lexicographic Min-Max Optimization" (2006)
+(https://doi.org/10.1007/11751595_85)
+
+- Takes the problem instance matrix as input and
+- Return an allocation matrix and the gurobi MIP model used to solve the problem. 
+
+lex min [t_1 + sum(d_1j), ... , t_m + sum(d_mj)]
+
+ s.t.   t_k + d_kj >= f_j(X)
+        d_kj >= 0
+
+In contrast to the allocation oo method, 
+the functions to be lexicographically min-maxxed 
+is each panel's probability of being chosen in a lottery.
+
+"""
+def ordered_outcomes_stratification(instance):
+    M = len(instance) # number of panels
+    N = len(instance[0]) # number of people
+
+    grb.setParam("OutputFlag", 1)
+    eps = 0.0001
+
+    model = Model()
+    # model.setParam("Method", 2)
+
+    X = model.addMVar(M, vtype=GRB.CONTINUOUS, name="X") # panel probability vector
+    model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
+    model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
+
+    funcs = [sum(instance[j][i]*X[j] for j in range(M)) for i in range(N)]
+
+    t = model.addMVar(N, vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, name="t") # list of t variables of length M, one for each agent. All real numbers. 
+    d = model.addMVar((N,N), vtype=GRB.CONTINUOUS, lb=0., name="d") # d matrix, of length M x M. Only positive values.
+
+    model.addConstrs((t[k] + d[k,j] >= - funcs[j]) for j in range(N) for k in range(N)) # M**2 constraints
+
+    # solve as a lexicographic optimization problem with N objectives. 
+    for i in range(N):
+        objective = (i+1) * t[i] + sum(d[i,j] for j in range(N))
+        model.setObjective(objective, GRB.MINIMIZE)
+        model.optimize() # TODO: add handling for infeasible model?
+        # NOTE: for large problem instances, this optimization takes a lot of time,
+        # but if the optimization is interrupted with "Ctrl + C" after a short while
+        # for every iteration, it produces the correct solution in significantly shorter time
+        # there is something about number of nodes or iterations that are not optimal...
+        z = model.objVal
+        model.addConstr(objective <= z + eps)
+    
+    return X, model
 
 """
 ORDERED VALUES ALGORITHM FOR ALLOCATION PROBLEMS 
@@ -241,6 +295,37 @@ def print_allocation_result(allocation, instance):
     print("LEXIMIN SORTED VALUES: ")
     print(values)
 
+"""
+Helper method for finding each person's probability of being chosen
+"""
+
+def get_stratification_probabilities(X, instance):
+    people_probabilities = [0]*len(instance[0])
+    for i in range(len(instance)):
+        for j in range(len(instance[0])):
+            people_probabilities[j] += X.x[i] * instance[i][j]
+    return people_probabilities
+
+"""
+Helper method for printing stratification results
+"""
+
+def print_stratification_result(X, instance):
+    print("*********************")
+    print("RESULT STRATIFICATION PROBLEM: ")
+    print("")
+    print("Number of possible panels: " + str(len(instance)))
+    print("")
+    print("Each panel's probability value: ")
+    print(X.x)
+    print("")
+    print("Number of people: " + str(len(instance[0])))
+    print("")
+    print("List of each persons probability: ")
+    print(get_stratification_probabilities(X, instance))
+    print("")
+
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -254,24 +339,35 @@ if __name__ == '__main__':
     
     #ALLOCATIONS
     if (problemtype == "allocations"):
+        instance = read_csv("examples/allocations/" + filename)
 
         #ORDERED OUTCOMES METHOD
         if (solvertype == "oo"):
-            instance = read_csv("examples/allocations/" + filename)
             A, model = ordered_outcomes_allocation(instance)
         
         #ORDERED VALUES METHOD
         elif (solvertype == "ov"):
-            instance = read_csv("examples/allocations/" + filename)
             values_list = create_integer_func_values(instance)
             A, model = ordered_values_allocation(instance, values_list)
         
         #SATURATION METHOD
         elif (solvertype == "sat"):
-            instance = read_csv("examples/allocations/" + filename)
             A, model = saturation_allocation(instance)
         
         print_allocation_result(A, instance)
+    
+    #STRATIFICATIONS
+    if (problemtype == "stratifications"):
+        instance = read_csv("examples/stratifications/" + filename)
+
+        #ORDERED OUTCOMES METHOD
+        if (solvertype == "oo"):
+            X, model = ordered_outcomes_stratification(instance)
+        
+        print_stratification_result(X, instance)
+        
+
+
 
 
         
