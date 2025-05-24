@@ -13,21 +13,27 @@ Running the program
 ===================
 Some example data files are provided to run the different algorithms.
 
-Testing the ordered outcomes method using the large allocation example:
+Running the ordered outcomes method using the large allocation example:
 ```
 $ python implementations.py allocations oo large.csv
 
 ```
 
-Testing the ordered values method with the large allocation example:
+Running the ordered values method with the large allocation example:
 ```
 $ python implementations.py allocations ov large.csv
 
 ```
 
-Testing the saturation method using the large convex allocation example:
+Running the saturation method using the large convex allocation example:
 ```
 $ python implementations.py allocations sat large_convex.csv
+
+```
+
+Running the ordered outcome method using the large stratification example:
+```
+$ python implementations.py stratifications oo large.csv
 
 ```
 
