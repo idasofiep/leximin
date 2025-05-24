@@ -21,13 +21,19 @@ $ python implementations.py allocations oo large.csv
 
 Testing the ordered values method with the large allocation example:
 ```
-$ python implementations.py ov allocations large.csv
+$ python implementations.py allocations ov large.csv
 
 ```
 
 Testing the saturation method using the large convex allocation example:
 ```
-$ python implementations.py sat allocations large_convex.csv
+$ python implementations.py allocations sat large_convex.csv
+
+```
+
+Run unit tests:
+```
+$ python -m unittest
 
 ```
 
@@ -125,5 +131,6 @@ The overall population are described using categories and specific quotas for ea
 Then, we also need to ensure fairness among all agents, which means that all agents should have equal possibility of being chosen. The problem is that it is often not possible to both ensure representativeness and equal probability of being chosen. Underrepresented groups in the pool will have a greater change of being part of the final panels. The framework presented by Flanigal et al (place reference here) use a leximin strategy to ensure maximal fairness among agents. The way it works, is that all agents probabilities are leximin ordered so that the lottery produced gives all agents a leximax probability of being chosen. They argue that other methods of making stratification lotteries often exclude some agents from being chosen or give them equal to zero probability, and by applying leximin ordering of probabilities this is prevented. 
 
 The framework use a saturation method for the leximin optimization, and column generation to find possible panels for the final lottery. For each iteration at least one agents probability will be saturated or a new panel is added to the solution.
+
 
 
