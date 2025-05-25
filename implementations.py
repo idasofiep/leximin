@@ -317,6 +317,9 @@ s.t.  x in X,
 If the optimal f_j(x) value equals z, then objective j becomes saturated from now on.
 otherwise, the optimal value must be larger than z; objective j remains free for now. 
 
+Note: as for the allocations solution, this method does not work for all types of problems.
+The problem needs to have convex solution set to give guaranteed optimal solutions. 
+
 """
 def saturation_stratification(instance):
     M = len(instance) # number of panels
@@ -359,13 +362,87 @@ def saturation_stratification(instance):
                     fixed_binary[i] = 1
                     fixed_people+=1
                     break
-    print("*************")
-    print(fixed_values)
-    print("*************")
     return X, model
 
+"""
+SATURATION ALGORITHM FOR STRATIFICATION PROBLEMS
 
+While there exists free objectives:
 
+max z
+s.t.  x in X,
+      f_k(x) >= fixed_values[k]      for all saturated objectives k,
+      f_k(x) >= z                    for all free objectives k
+
+If the optimal f_j(x) value equals z, then try maximizing f_j(x).
+If f_j(x) still equals z, then saturate objective j. 
+otherwise, the optimal value must be larger than z; objective j remains free for now. 
+
+This is the more general saturation problem, that works for a larger set of problems.
+The method use a optimization model to decide wether objective j is saturated or not.
+At least one objective will be saturated for each iteration. 
+
+"""
+def saturation_stratification_general(instance):
+    M = len(instance) # number of panels
+    N = len(instance[0]) # number of people
+    
+    grb.setParam("OutputFlag", 1)
+    eps = 0.0001
+
+    fixed_people = 0 # counter for fixed agents
+    fixed_values = [0]*N # fixed value for person i's function
+    fixed_binary = [0]*N # indicate wether person i is fixed or not
+
+    
+    while (fixed_people < N):
+        model = Model()
+        X = model.addMVar(M, vtype=GRB.CONTINUOUS, name="X") # Panel probabilities
+        model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
+        model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
+
+        funcs = [sum(instance[j][i]*X[j] for j in range(M)) for i in range(N)] # there is one probability function for each person
+
+        z = model.addVar(vtype=GRB.CONTINUOUS, name="z")
+
+        for i in range(N):
+            if (fixed_binary[i] < 0.5):
+                model.addConstr(funcs[i] >= z)
+            else:
+                model.addConstr(funcs[i] >= fixed_values[i])
+
+        model.setObjective(z, GRB.MAXIMIZE)
+        model.optimize()
+        objectiveValue = model.objVal #maxmin value
+
+        for i in range(N):
+            if (fixed_binary[i] > 0.5):
+                continue
+            
+            new_model = Model() # new model to decide if agent i is saturated in this round or not
+            new_X = new_model.addMVar(M, vtype=GRB.CONTINUOUS, name="new_X") # Panel probabilities
+            new_model.addConstr(sum(X[j] for j in range(M)) <= 1 + eps) # sum of probabilities should add up to one
+            new_model.addConstr(sum(X[j] for j in range(M)) >= 1 - eps) # sum of probabilities should add up to one
+            funcs = [sum(instance[j][k]*new_X[j] for j in range(M)) for k in range(N)] # there is one probability function for each person
+
+            for j in range(N):
+                if (fixed_binary[j] < 0.5):
+                    new_model.addConstr(funcs[j] >= objectiveValue)  # instead of the variable z, 
+                                                                     # we lock each function to the maximized value of z 
+                                                                     # found in the main optimization problem.
+                else:
+                    new_model.addConstr(funcs[j] >= fixed_values[j]) # also, lock all already saturated objectives
+            
+            new_model.setObjective(funcs[i], GRB.MAXIMIZE) # now, maximize the value function for agent i
+            new_model.optimize()
+            objective_value_new = new_model.objVal
+
+            # if agent i can not improve its probability value, it is saturated.
+            if ((objective_value_new < objectiveValue + eps) & (objective_value_new > objectiveValue - eps)):
+                    fixed_values[i] = objectiveValue
+                    fixed_binary[i] = 1
+                    fixed_people+=1
+    return X, model
 
 """
 Helper method to get sorted allocation values list
@@ -475,12 +552,11 @@ if __name__ == '__main__':
         elif (solvertype == "sat"):
             X, model = saturation_stratification(instance)
         
+        #SATURATION GENERAL METHOD
+        elif (solvertype == "sat_gen"):
+            X, model = saturation_stratification_general(instance)
+        
+        
         print_stratification_result(X, instance)
-        
-
-
-
-
-        
         
 
