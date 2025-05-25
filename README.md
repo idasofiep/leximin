@@ -37,6 +37,12 @@ $ python implementations.py stratifications oo large.csv
 
 ```
 
+Running the ordered values method using the large stratification example:
+```
+$ python implementations.py stratifications ov large.csv
+
+```
+
 Run unit tests:
 ```
 $ python -m unittest

@@ -86,9 +86,6 @@ def ordered_outcomes_allocation(instance):
 """
 ORDERED OUTCOMES ALGORITHM FOR STRATIFICATION PROBLEMS
 
-Solve allocation problems with the Leximin Ordered Outcomes method described by Ogryczak and Sliwinśki in:
-"On Direct Methods for Lexicographic Min-Max Optimization" (2006)
-(https://doi.org/10.1007/11751595_85)
 
 - Takes the problem instance matrix as input and
 - Return an allocation matrix and the gurobi MIP model used to solve the problem. 
@@ -186,6 +183,57 @@ def ordered_values_allocation(instance, values_list):
         model.addConstr(objective <= z + eps)
     
     return A, model
+
+"""
+ORDERED VALUES ALGORITHM FOR STRATIFICATION PROBLEMS
+
+- Takes the problem instance matrix as input
+- Return a list of probability values for each panel, and the gurobi MIP model
+
+In contrast to the allocation problems, we don't need to find possible function values,
+as we know that the function values are the possible probability values for each person,
+which depend on the size of the lottery (or like the number of panels we want to draw from).
+So if we want to make a lottery with 1000 panels, the possible function/probability values are all
+thousandths between 0 and 1.
+
+lex min [sum(h_2j), ... , sum(h_rj)]
+ s.t.     h_kj >= f_j(X) - v_k
+          h_kj >= 0
+ 
+"""
+def ordered_values_stratification(instance):
+    M = len(instance) # number of panels
+    N = len(instance[0]) # number of people
+
+    grb.setParam("OutputFlag", 1)
+    values_list = []
+    R = 1000 # number of panels to draw from in lottery, this value could also be set an input value
+
+    for i in range(R):
+        values_list.append(i/R) # add all possible probability values to value list
+
+    eps = 0.0001
+
+    model = Model()
+    X = model.addMVar(M, vtype=GRB.BINARY, name="X") # Panel probabilities
+    model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
+    model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
+
+    funcs = [sum(instance[j][i]*X[j] for j in range(M)) for i in range(N)] # there is one probability function for each person
+
+    h = model.addMVar((R,N), vtype=GRB.CONTINUOUS, name="h") # h matrix
+
+    model.addConstrs((h[k, j] >= -(funcs[j] - values_list[k])) for j in range(N) for k in range(R)) # N**2 constraints
+
+    # solve as a lexicographic optimization problem with R-1 objectives (possible function values)
+    for k in range(R-1):
+        objective = sum(h[k+1,j] for j in range(N))
+        model.setObjective(objective, GRB.MINIMIZE)
+        model.optimize()
+        z = model.objVal
+        model.addConstr(objective <= z + eps)
+    
+    return X, model
 
 """
 Helper method to create integer function value list
@@ -362,6 +410,10 @@ if __name__ == '__main__':
 
         #ORDERED OUTCOMES METHOD
         if (solvertype == "oo"):
+            X, model = ordered_outcomes_stratification(instance)
+        
+        #ORDERED VALUES METHOD
+        elif (solvertype == "ov"):
             X, model = ordered_outcomes_stratification(instance)
         
         print_stratification_result(X, instance)
