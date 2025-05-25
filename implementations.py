@@ -215,7 +215,7 @@ def ordered_values_stratification(instance):
     eps = 0.0001
 
     model = Model()
-    X = model.addMVar(M, vtype=GRB.BINARY, name="X") # Panel probabilities
+    X = model.addMVar(M, vtype=GRB.CONTINUOUS, name="X") # Panel probabilities
     model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
     model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
 
@@ -414,7 +414,7 @@ if __name__ == '__main__':
         
         #ORDERED VALUES METHOD
         elif (solvertype == "ov"):
-            X, model = ordered_outcomes_stratification(instance)
+            X, model = ordered_values_stratification(instance)
         
         print_stratification_result(X, instance)
         
