@@ -43,6 +43,12 @@ $ python implementations.py stratifications ov large.csv
 
 ```
 
+Running the saturation method using the large convex stratification example:
+```
+$ python implementations.py stratifications sat large_convex.csv
+
+```
+
 Run unit tests:
 ```
 $ python -m unittest

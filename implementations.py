@@ -136,6 +136,23 @@ def ordered_outcomes_stratification(instance):
     return X, model
 
 """
+Helper method to create integer function value list
+
+- Takes the problem instance as input
+- Return a list of integers between 0 and the max value for the problem instance
+
+TODO: Make support for other func_values than integers
+"""
+def create_integer_func_values(instance):
+    max_value = 0
+    for func in instance:
+        max_value = max(max_value, sum(func[i] for i in range(len(func))))
+    value_list = []
+    for i in range(max_value+1):
+        value_list.append(i)
+    return value_list
+
+"""
 ORDERED VALUES ALGORITHM FOR ALLOCATION PROBLEMS 
 
 Solve allocation problems with the Leximin Ordered Values method described by Ogryczak and Sliwinśki in:
@@ -206,12 +223,7 @@ def ordered_values_stratification(instance):
     N = len(instance[0]) # number of people
 
     grb.setParam("OutputFlag", 1)
-    values_list = []
     R = 1000 # number of panels to draw from in lottery, this value could also be set an input value
-
-    for i in range(R):
-        values_list.append(i/R) # add all possible probability values to value list
-
     eps = 0.0001
 
     model = Model()
@@ -223,7 +235,7 @@ def ordered_values_stratification(instance):
 
     h = model.addMVar((R,N), vtype=GRB.CONTINUOUS, name="h") # h matrix
 
-    model.addConstrs((h[k, j] >= -(funcs[j] - values_list[k])) for j in range(N) for k in range(R)) # N**2 constraints
+    model.addConstrs((h[k, j] >= -(funcs[j] - (k/R))) for j in range(N) for k in range(R)) # N**2 constraints
 
     # solve as a lexicographic optimization problem with R-1 objectives (possible function values)
     for k in range(R-1):
@@ -234,25 +246,6 @@ def ordered_values_stratification(instance):
         model.addConstr(objective <= z + eps)
     
     return X, model
-
-"""
-Helper method to create integer function value list
-
-- Takes the problem instance as input
-- Return a list of integers between 0 and the max value for the problem instance
-
-TODO: Make support for other func_values than integers
-"""
-def create_integer_func_values(instance):
-    max_value = 0
-    for func in instance:
-        max_value = max(max_value, sum(func[i] for i in range(len(func))))
-    value_list = []
-    for i in range(max_value+1):
-        value_list.append(i)
-    return value_list
-
-
 
 """
 SATURATION ALGORITHM FOR ALLOCATION PROBLEMS
@@ -312,6 +305,69 @@ def saturation_allocation(instance):
     return A, model
 
 """
+SATURATION ALGORITHM FOR STRATIFICATION PROBLEMS
+
+While there exists free objectives:
+
+max z
+s.t.  x in X,
+      f_k(x) >= fixed_values[k]      for all saturated objectives k,
+      f_k(x) >= z                    for all free objectives k
+
+If the optimal f_j(x) value equals z, then objective j becomes saturated from now on.
+otherwise, the optimal value must be larger than z; objective j remains free for now. 
+
+"""
+def saturation_stratification(instance):
+    M = len(instance) # number of panels
+    N = len(instance[0]) # number of people
+    
+    grb.setParam("OutputFlag", 1)
+    eps = 0.0001
+
+    fixed_people = 0 # counter for fixed agents
+    fixed_values = [0]*N # fixed value for person i's function
+    fixed_binary = [0]*N # indicate wether person i is fixed or not
+
+    
+    while (fixed_people < N):
+        model = Model()
+        X = model.addMVar(M, vtype=GRB.CONTINUOUS, name="X") # Panel probabilities
+        model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
+        model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
+
+        funcs = [sum(instance[j][i]*X[j] for j in range(M)) for i in range(N)] # there is one probability function for each person
+
+        z = model.addVar(vtype=GRB.CONTINUOUS, name="z")
+
+        for i in range(N):
+            if (fixed_binary[i] < 0.5):
+                model.addConstr(funcs[i] >= z)
+            else:
+                model.addConstr(funcs[i] >= fixed_values[i])
+
+        model.setObjective(z, GRB.MAXIMIZE)
+        model.optimize()
+        objectiveValue = model.objVal
+
+        for i in range(N):
+            if (fixed_binary[i] < 0.5):
+                func_value = sum(instance[j][i]*X[j].x for j in range(M)) # agent i's probability for this solution
+                if ((func_value < objectiveValue + eps) & (func_value > objectiveValue - eps)):
+                    # agent i's objective value can not be improved so the agent is now fixed
+                    fixed_values[i] = objectiveValue
+                    fixed_binary[i] = 1
+                    fixed_people+=1
+                    break
+    print("*************")
+    print(fixed_values)
+    print("*************")
+    return X, model
+
+
+
+
+"""
 Helper method to get sorted allocation values list
 """
 def get_allocation_values(allocation, instance):
@@ -326,7 +382,6 @@ def get_allocation_values(allocation, instance):
         values.append(value)
     values.sort()
     return values
-
 
 """
 Helper method to show results of allocations
@@ -415,6 +470,10 @@ if __name__ == '__main__':
         #ORDERED VALUES METHOD
         elif (solvertype == "ov"):
             X, model = ordered_values_stratification(instance)
+
+        #SATURATION METHOD
+        elif (solvertype == "sat"):
+            X, model = saturation_stratification(instance)
         
         print_stratification_result(X, instance)
         
