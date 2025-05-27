@@ -12,6 +12,7 @@ import typing
 from typing import NewType, List
 from dataclasses import dataclass
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+import random
 
 """
 Read a csv file that define the problem instance
@@ -55,8 +56,8 @@ def ordered_outcomes_allocation(instance):
     M = len(instance) # number of agents
     N = len(instance[0]) # number of items
 
-    grb.setParam("OutputFlag", 1)
-    eps = 0.0001
+    grb.setParam("OutputFlag", 0)
+    eps = 0.001
 
     model = Model()
     # model.setParam("Method", 2)
@@ -99,7 +100,7 @@ def ordered_outcomes_stratification(instance):
     M = len(instance) # number of panels
     N = len(instance[0]) # number of people
 
-    grb.setParam("OutputFlag", 1)
+    grb.setParam("OutputFlag", 0)
     eps = 0.0001
 
     model = Model()
@@ -213,7 +214,7 @@ def ordered_values_stratification(instance):
     M = len(instance) # number of panels
     N = len(instance[0]) # number of people
 
-    grb.setParam("OutputFlag", 1)
+    grb.setParam("OutputFlag", 0)
     R = 1000 # number of panels to draw from in lottery, this value could also be set an input value
     eps = 0.0001
 
@@ -256,7 +257,7 @@ def saturation_allocation(instance):
     M = len(instance) # number of agents
     N = len(instance[0]) # number of items
     
-    grb.setParam("OutputFlag", 1)
+    grb.setParam("OutputFlag", 0)
     eps = 0.0001
 
     fixed_agents = 0 # counter for fixed agents
@@ -310,8 +311,6 @@ def saturation_allocation(instance):
                 fixed_binary[i] = 1
                 fixed_agents+=1
         if (currently_fixed == fixed_agents):
-            # TODO: add error handling
-            print("not possible to solve using stratification")
             return A, model
     return A, model
 
@@ -337,14 +336,13 @@ def saturation_stratification(instance):
     M = len(instance) # number of panels
     N = len(instance[0]) # number of people
     
-    grb.setParam("OutputFlag", 1)
+    grb.setParam("OutputFlag", 0)
     eps = 0.0001
 
     fixed_people = 0 # counter for fixed agents
     fixed_values = [0]*N # fixed value for person i's function
     fixed_binary = [0]*N # indicate wether person i is fixed or not
 
-    
     while (fixed_people < N):
         currently_fixed = fixed_people
         model = Model()
@@ -393,13 +391,8 @@ def saturation_stratification(instance):
                     fixed_values[i] = objectiveValue
                     fixed_binary[i] = 1
                     fixed_people+=1
-        
-        #check if no people have been fixed. If this is the case, the problem is not solvable with the saturation method.
-        if (fixed_people == currently_fixed):
-            #TODO: add error handling
-            print("Not possible to solve this problem using saturation")
+        if (currently_fixed == fixed_people):
             return X, model
-            
     return X, model
 
 """
@@ -442,6 +435,7 @@ def get_stratification_probabilities(X, instance):
     for i in range(len(instance)):
         for j in range(len(instance[0])):
             people_probabilities[j] += X.x[i] * instance[i][j]
+    people_probabilities.sort()
     return people_probabilities
 
 """
@@ -452,18 +446,16 @@ def print_stratification_result(X, instance):
     print("*********************")
     print("RESULT STRATIFICATION PROBLEM: ")
     print("")
-    print("Number of possible panels: " + str(len(instance)))
+    print("Number of possible panels: ", str(len(instance)))
     print("")
     print("Each panel's probability value: ")
     print(X.x)
     print("")
-    print("Number of people: " + str(len(instance[0])))
+    print("Number of people: ", str(len(instance[0])))
     print("")
     print("List of each persons probability: ")
     print(get_stratification_probabilities(X, instance))
     print("")
-
-
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -510,7 +502,4 @@ if __name__ == '__main__':
         elif (solvertype == "sat"):
             X, model = saturation_stratification(instance)
         
-        
         print_stratification_result(X, instance)
-        
-

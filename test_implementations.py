@@ -1,82 +1,75 @@
-import gurobipy as grb
-from gurobipy import Model, GRB
-import mip
 import numpy as np
 import typing
 import random
 from typing import Any, Dict, List, Tuple, FrozenSet, Iterable, Optional, Set
 from dataclasses import dataclass
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from copy import deepcopy
-from itertools import combinations
 from unittest import TestCase
-from implementations import ordered_outcomes_allocation, ordered_values_allocation, saturation_allocation, create_integer_func_values, get_allocation_values
+from implementations import ordered_outcomes_allocation, ordered_values_allocation, saturation_allocation, create_integer_func_values, get_allocation_values, ordered_outcomes_stratification, ordered_values_stratification, saturation_stratification, get_stratification_probabilities
 
 @dataclass
 class AllocationTestSet:
     instance: list[list[int]]
     expected_sorted_values: list[int]
-    unique_solution: bool
 
 
 allocation1 = AllocationTestSet(
     [[1,2,3],[2,2,9],[2,3,3],[2,2,2]],
-    [0,2,3,9],
-    True
+    [0,2,3,9]
 )
 
 allocation2 = AllocationTestSet(
     [[2,1],[1,2]],
-    [2,2],
-    True
+    [2,2]
 )
 
 allocation3 = AllocationTestSet(
     [[1,3],[1,2]],
-    [1,3],
-    True
+    [1,3]
 )
 
 allocation4 = AllocationTestSet(
     [[4,3],[3,2]],
-    [3,3],
-    True
+    [3,3]
 )
 
 allocation5 = AllocationTestSet(
     [[2,2,2,2],[1,1,1,1]],
-    [2,4],
-    False
+    [2,4]
 )
 
 allocation6 = AllocationTestSet(
     [[3,3,3,3],[1,1,1,1]],
-    [3,3],
-    False
+    [3,3]
 )
 
 allocation7 = AllocationTestSet(
     [[2,1,2,1],[1,2,1,2]],
-    [4,4],
-    False
+    [4,4]
 )
 
 allocation8 = AllocationTestSet(
     [[3,4,2,1],[5,5,1,1]],
-    [6,6],
-    True
+    [6,6]
 )
 
 allocation9 = AllocationTestSet(
     [[1,16,23,26,4,10,12,19,9],[1,16,22,26,4,9,13,20,9],[1,15,23,25,4,10,13,20,9]],
-    [39,40,43],
-    False
+    [39,40,43]
 )
 
-allocation10 = AllocationTestSet(
+allocation_sat_1 = AllocationTestSet(
     [[1,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1]],
-    [1,1,1,1,1],
-    True
+    [1,1,1,1,1]
+)
+
+allocation_sat_2 = AllocationTestSet(
+    [[4,3,2,1,0],[4,5,3,2,1],[2,3,6,5,3],[1,2,3,5,2],[2,3,4,5,6]],
+    [4,5,5,6,6]
+)
+
+allocation_sat_3 = AllocationTestSet(
+    [[10,9,8,7,6,5,4,3,2,1],[9,8,7,6,5,4,3,2,1,0]],
+    [25,26]
 )
 
 class FindAllocationLeximinTests(TestCase):
@@ -181,39 +174,162 @@ class FindAllocationLeximinTests(TestCase):
         A, model = ordered_values_allocation(allocation9.instance, values_list)
         sorted_values = get_allocation_values(A, allocation9.instance)
         self.assertEqual(sorted_values, allocation9.expected_sorted_values)
+
+        # test sat_1
+        values_list = create_integer_func_values(allocation_sat_1.instance)
+        A, model = ordered_values_allocation(allocation_sat_1.instance, values_list)
+        sorted_values = get_allocation_values(A, allocation_sat_1.instance)
+        self.assertEqual(sorted_values, allocation_sat_1.expected_sorted_values)
+
+        # test sat_2
+        values_list = create_integer_func_values(allocation_sat_2.instance)
+        A, model = ordered_values_allocation(allocation_sat_2.instance, values_list)
+        sorted_values = get_allocation_values(A, allocation_sat_2.instance)
+        self.assertEqual(sorted_values, allocation_sat_2.expected_sorted_values)
+
+        # test sat_3
+        values_list = create_integer_func_values(allocation_sat_3.instance)
+        A, model = ordered_values_allocation(allocation_sat_3.instance, values_list)
+        sorted_values = get_allocation_values(A, allocation_sat_3.instance)
+        self.assertEqual(sorted_values, allocation_sat_3.expected_sorted_values)
+
     
     """
-    Saturation method only for instances with unique solution
+    Saturation method that only works for some (convex) problems
     """
     def test_allocation_sat(self):
-        # test 1
-        A, model = saturation_allocation(allocation1.instance)
-        sorted_values = get_allocation_values(A, allocation1.instance)
-        self.assertEqual(sorted_values, allocation1.expected_sorted_values)
 
-        # test 2
-        A, model = saturation_allocation(allocation2.instance)
-        sorted_values = get_allocation_values(A, allocation2.instance)
-        self.assertEqual(sorted_values, allocation2.expected_sorted_values)
+        # test sat_1
+        A, model = saturation_allocation(allocation_sat_1.instance)
+        sorted_values = get_allocation_values(A, allocation_sat_1.instance)
+        self.assertEqual(sorted_values, allocation_sat_1.expected_sorted_values)
 
-        # test 3
-        A, model = saturation_allocation(allocation3.instance)
-        sorted_values = get_allocation_values(A, allocation3.instance)
-        self.assertEqual(sorted_values, allocation3.expected_sorted_values)
+        # test sat_2
+        A, model = saturation_allocation(allocation_sat_2.instance)
+        sorted_values = get_allocation_values(A, allocation_sat_2.instance)
+        self.assertEqual(sorted_values, allocation_sat_2.expected_sorted_values)
 
-        # test 4
-        A, model = saturation_allocation(allocation4.instance)
-        sorted_values = get_allocation_values(A, allocation4.instance)
-        self.assertEqual(sorted_values, allocation4.expected_sorted_values)
+        # test sat_3
+        A, model = saturation_allocation(allocation_sat_3.instance)
+        sorted_values = get_allocation_values(A, allocation_sat_3.instance)
+        self.assertEqual(sorted_values, allocation_sat_3.expected_sorted_values)
 
-        # test 8
-        A, model = saturation_allocation(allocation8.instance)
-        sorted_values = get_allocation_values(A, allocation8.instance)
-        self.assertEqual(sorted_values, allocation8.expected_sorted_values)
+"""
+Helper method for making random stratification instances.
 
-        # test 10
-        A, model = saturation_allocation(allocation10.instance)
-        sorted_values = get_allocation_values(A, allocation10.instance)
-        self.assertEqual(sorted_values, allocation10.expected_sorted_values)
+With large enough instances there is a random but even distribution over panels among people
+and most probability distributions will be uniform. The method can be seen as a random generator
+of panels with only one category so all people should have the same change to being chosen in a lottery.
+"""
+def makeRandomStratification(panel_size,people, panel_number):
+    panel = []
+    for i in range(panel_size):
+        panel.append(1)
+    for i in range(people - panel_size):
+        panel.append(0)
+    
+    panels = []
+    for i in range(panel_number):
+        random.shuffle(panel)
+        new_panel = panel.copy()
+        panels.append(new_panel)
+    return panels
+
+"""
+Helper method for making random stratification instances
+
+The method can be seen as a random generator of panels with two categories.
+"""
+# cat 1 quota, cat 2 quota, people in cat 1, people in cat 2, number of panels
+def makeRandomStratificationTwoCategories(panel_cat_1_size, panel_cat_2_size, people_number_cat_1, people_number_cat_2, panel_number):
+    panel_1 = []
+    for i in range(panel_cat_1_size):
+        panel_1.append(1)
+    for i in range(people_number_cat_1 - panel_cat_1_size):
+        panel_1.append(0)
+    
+    panel_2 = []
+    for i in range(panel_cat_2_size):
+        panel_2.append(1)
+    for i in range(people_number_cat_2 - panel_cat_2_size):
+        panel_2.append(0)
+    
+    panels = []
+    for i in range(panel_number):
+        random.shuffle(panel_1)
+        random.shuffle(panel_2)
+        new_panel = panel_1.copy() + panel_2.copy()
+        panels.append(new_panel)
+    
+    return panels
+
+class FindStratificationLeximinTests(TestCase):
+    def test_stratification(self):
+
+        # small test oo and sat
+        instance = makeRandomStratification(5,10,20) # people, panel_size, panels
+
+        X_1, model_1 = ordered_outcomes_stratification(instance)
+        X_2, model_2 = saturation_stratification(instance)
+
+        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
+        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
+
+        for i in range(len(sorted_probabilities_1)):
+            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
+        
+        # small stratification test oo and ov (only sat test for ordered values as it is too slow for larges problem instances)
+        instance = makeRandomStratification(10,5,20)
+
+        X_1, model_1 = ordered_outcomes_stratification(instance)
+        X_2, model_2 = ordered_values_stratification(instance)
+
+        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
+        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
+
+        for i in range(len(sorted_probabilities_1)):
+            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
+        
+        # large stratification test oo and sat
+        instance = makeRandomStratification(30,10,200)
+
+        X_1, model_1 = ordered_outcomes_stratification(instance)
+        X_2, model_2 = saturation_stratification(instance)
+
+        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
+        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
+
+        for i in range(len(sorted_probabilities_1)):
+            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
+        
+        # TWO CATEGORIES
+        # cat 1 quota, cat 2 quota, people in cat 1, people in cat 2, number of panels
+        # small non-uniform test oo and ov (only sat test for ordered values as it is too slow for larges problem instances)
+        instance = makeRandomStratificationTwoCategories(2,3,5,5,10)
+
+        X_1, model_1 = ordered_outcomes_stratification(instance)
+        X_2, model_2 = ordered_values_stratification(instance)
+
+        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
+        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
+
+        for i in range(len(sorted_probabilities_1)):
+            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
+
+        # small non-uniform test oo and ov (only sat test for ordered values as it is too slow for larges problem instances)
+        instance = makeRandomStratificationTwoCategories(2,3,10,10,100)
+
+        X_1, model_1 = ordered_outcomes_stratification(instance)
+        X_2, model_2 = saturation_stratification(instance)
+
+        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
+        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
+
+        for i in range(len(sorted_probabilities_1)):
+            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
+
+
+
+
 
     
