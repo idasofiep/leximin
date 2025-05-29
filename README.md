@@ -55,6 +55,12 @@ $ python -m unittest
 
 ```
 
+Run analysis program:
+```
+$ python analysis.py
+
+```
+
 
 Algorithms
 ==========
