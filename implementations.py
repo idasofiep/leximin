@@ -13,6 +13,7 @@ from typing import NewType, List
 from dataclasses import dataclass
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import random
+from time import time
 
 """
 Read a csv file that define the problem instance
@@ -60,6 +61,7 @@ def ordered_outcomes_allocation(instance):
     eps = 0.001
 
     model = Model()
+    # model.Params.TimeLimit = 20
     # model.setParam("Method", 2)
     A = model.addMVar((M,N), vtype=GRB.BINARY, name="A") # Allocation matrix.
     t = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, name="t") # list of t variables of length M, one for each agent. All real numbers. 
@@ -106,7 +108,7 @@ def ordered_outcomes_stratification(instance):
     model = Model()
     # model.setParam("Method", 2)
 
-    X = model.addMVar(M, vtype=GRB.CONTINUOUS, name="X") # panel probability vector
+    X = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=0., name="X") # panel probability vector
     model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
     model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
 
@@ -171,12 +173,12 @@ def ordered_values_allocation(instance, values_list):
 
     grb.setParam("OutputFlag", 0)
     R = len(values_list)
-
     eps = 0.0001
 
     model = Model()
+    #model.Params.TimeLimit = 20
     A = model.addMVar((M,N), vtype=GRB.BINARY, name="A") # Allocation matrix.
-    h = model.addMVar((R,M), vtype=GRB.CONTINUOUS, name="h") # h matrix
+    h = model.addMVar((R,M), vtype=GRB.CONTINUOUS, lb=0., name="h") # h matrix
 
     funcs = [sum(instance[i][j]*A[i,j] for j in range(N)) for i in range(M)] # M value functions, one for each agent.
     model.addConstrs((sum(A[i,j] for i in range(M)) <= 1 + eps) for j in range(N)) # N constraints, ensure no item can be allocated to more than one agent.
@@ -190,7 +192,7 @@ def ordered_values_allocation(instance, values_list):
         model.optimize()
         z = model.objVal
         model.addConstr(objective <= z + eps)
-    
+
     return A, model
 
 """
@@ -215,17 +217,17 @@ def ordered_values_stratification(instance):
     N = len(instance[0]) # number of people
 
     grb.setParam("OutputFlag", 0)
-    R = 1000 # number of panels to draw from in lottery, this value could also be set an input value
+    R = 100 # number of panels to draw from in lottery, this value could also be set an input value
     eps = 0.0001
 
     model = Model()
-    X = model.addMVar(M, vtype=GRB.CONTINUOUS, name="X") # Panel probabilities
+    X = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=0., name="X") # Panel probabilities
     model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
     model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
 
     funcs = [sum(instance[j][i]*X[j] for j in range(M)) for i in range(N)] # there is one probability function for each person
 
-    h = model.addMVar((R,N), vtype=GRB.CONTINUOUS, name="h") # h matrix
+    h = model.addMVar((R,N), vtype=GRB.CONTINUOUS, lb=0., name="h") # h matrix
 
     model.addConstrs((h[k, j] >= -(funcs[j] - (k/R))) for j in range(N) for k in range(R)) # N**2 constraints
 
@@ -336,7 +338,7 @@ def saturation_stratification(instance):
     M = len(instance) # number of panels
     N = len(instance[0]) # number of people
     
-    grb.setParam("OutputFlag", 0)
+    grb.setParam("OutputFlag", 1)
     eps = 0.0001
 
     fixed_people = 0 # counter for fixed agents
@@ -346,13 +348,13 @@ def saturation_stratification(instance):
     while (fixed_people < N):
         currently_fixed = fixed_people
         model = Model()
-        X = model.addMVar(M, vtype=GRB.CONTINUOUS, name="X") # Panel probabilities
+        X = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=0., name="X") # Panel probabilities
         model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
         model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
 
         funcs = [sum(instance[j][i]*X[j] for j in range(M)) for i in range(N)] # there is one probability function for each person
 
-        z = model.addVar(vtype=GRB.CONTINUOUS, name="z")
+        z = model.addVar(vtype=GRB.CONTINUOUS, lb=0., name="z")
 
         for i in range(N):
             if (fixed_binary[i] < 0.5):
@@ -369,7 +371,7 @@ def saturation_stratification(instance):
                 continue
             
             new_model = Model() # new model to decide if agent i is saturated in this round or not
-            new_X = new_model.addMVar(M, vtype=GRB.CONTINUOUS, name="new_X") # Panel probabilities
+            new_X = new_model.addMVar(M, vtype=GRB.CONTINUOUS, lb=0., name="new_X") # Panel probabilities
             new_model.addConstr(sum(new_X[j] for j in range(M)) <= 1 + eps) # sum of probabilities should add up to one
             new_model.addConstr(sum(new_X[j] for j in range(M)) >= 1 - eps) # sum of probabilities should add up to one
             funcs = [sum(instance[j][k]*new_X[j] for j in range(M)) for k in range(N)] # there is one probability function for each person
@@ -391,6 +393,7 @@ def saturation_stratification(instance):
                     fixed_values[i] = objectiveValue
                     fixed_binary[i] = 1
                     fixed_people+=1
+        
         if (currently_fixed == fixed_people):
             return X, model
     return X, model
@@ -487,7 +490,7 @@ if __name__ == '__main__':
         print_allocation_result(A, instance)
     
     #STRATIFICATIONS
-    if (problemtype == "stratifications"):
+    elif (problemtype == "stratifications"):
         instance = read_csv("examples/stratifications/" + filename)
 
         #ORDERED OUTCOMES METHOD
@@ -503,3 +506,4 @@ if __name__ == '__main__':
             X, model = saturation_stratification(instance)
         
         print_stratification_result(X, instance)
+    
