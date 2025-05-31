@@ -11,31 +11,7 @@ import numpy as np
 import typing
 from typing import NewType, List
 from dataclasses import dataclass
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
-import random
 from time import time
-
-"""
-Read a csv file that define the problem instance
- - Allocation problems are defined as integer matrices
- - Stratification problems are defined as binary matrices
-
-return M x N integer matrix
-"""
-def read_csv(filename):
-    instance = []
-    try:
-        with open(filename, "r", newline="") as csvfile:
-            csv_reader = csv.reader(csvfile, delimiter=" ")
-            for line in csv_reader:
-                values = []
-                for val in line:
-                    values.append(int(val))
-                instance.append(values)
-    except OSError as e:
-        print(f"{type(e)}: {e}")
-    return instance
-
 
 """
 ORDERED OUTCOMES ALGORITHM FOR ALLOCATION PROBLEMS
@@ -61,9 +37,9 @@ def ordered_outcomes_allocation(instance):
     eps = 0.001
 
     model = Model()
-    # model.Params.TimeLimit = 20
+    # model.Params.TimeLimit = 120
     # model.setParam("Method", 2)
-    A = model.addMVar((M,N), vtype=GRB.BINARY, name="A") # Allocation matrix.
+    A = model.addMVar((M,N), vtype=GRB.BINARY, lb=0., name="A") # Allocation matrix.
     t = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, name="t") # list of t variables of length M, one for each agent. All real numbers. 
     d = model.addMVar((M,M), vtype=GRB.CONTINUOUS, lb=0., name="d") # d matrix, of length M x M. Only positive values.
 
@@ -77,6 +53,8 @@ def ordered_outcomes_allocation(instance):
         objective = (i+1) * t[i] + sum(d[i,j] for j in range(M))
         model.setObjective(objective, GRB.MINIMIZE)
         model.optimize()
+        if (model.status == GRB.TIME_LIMIT):
+            return A, model
         z = model.objVal
         model.addConstr(objective <= z + eps)
     return A, model
@@ -106,6 +84,7 @@ def ordered_outcomes_stratification(instance):
     eps = 0.0001
 
     model = Model()
+    model.Params.TimeLimit = 120
     # model.setParam("Method", 2)
 
     X = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=0., name="X") # panel probability vector
@@ -124,27 +103,12 @@ def ordered_outcomes_stratification(instance):
         objective = (i+1) * t[i] + sum(d[i,j] for j in range(N))
         model.setObjective(objective, GRB.MINIMIZE)
         model.optimize()
+        if (model.status == GRB.TIME_LIMIT):
+            return X, model
         z = model.objVal
         model.addConstr(objective <= z + eps)
     
     return X, model
-
-"""
-Helper method to create integer function value list
-
-- Takes the problem instance as input
-- Return a list of integers between 0 and the max value for the problem instance
-
-TODO: Make support for other func_values than integers
-"""
-def create_integer_func_values(instance):
-    max_value = 0
-    for func in instance:
-        max_value = max(max_value, sum(func[i] for i in range(len(func))))
-    value_list = []
-    for i in range(max_value+1):
-        value_list.append(i)
-    return value_list
 
 """
 ORDERED VALUES ALGORITHM FOR ALLOCATION PROBLEMS 
@@ -176,8 +140,8 @@ def ordered_values_allocation(instance, values_list):
     eps = 0.0001
 
     model = Model()
-    #model.Params.TimeLimit = 20
-    A = model.addMVar((M,N), vtype=GRB.BINARY, name="A") # Allocation matrix.
+    # model.Params.TimeLimit = 120
+    A = model.addMVar((M,N), vtype=GRB.BINARY, lb=0., name="A") # Allocation matrix.
     h = model.addMVar((R,M), vtype=GRB.CONTINUOUS, lb=0., name="h") # h matrix
 
     funcs = [sum(instance[i][j]*A[i,j] for j in range(N)) for i in range(M)] # M value functions, one for each agent.
@@ -190,6 +154,8 @@ def ordered_values_allocation(instance, values_list):
         objective = sum(h[k+1,j] for j in range(M))
         model.setObjective(objective, GRB.MINIMIZE)
         model.optimize()
+        if (model.status == GRB.TIME_LIMIT):
+            return A, model
         z = model.objVal
         model.addConstr(objective <= z + eps)
 
@@ -217,10 +183,11 @@ def ordered_values_stratification(instance):
     N = len(instance[0]) # number of people
 
     grb.setParam("OutputFlag", 0)
-    R = 100 # number of panels to draw from in lottery, this value could also be set an input value
+    R = 1000 # number of panels to draw from in lottery, this value could also be set an input value
     eps = 0.0001
 
     model = Model()
+    model.Params.TimeLimit = 120
     X = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=0., name="X") # Panel probabilities
     model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
     model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
@@ -236,6 +203,8 @@ def ordered_values_stratification(instance):
         objective = sum(h[k+1,j] for j in range(N))
         model.setObjective(objective, GRB.MINIMIZE)
         model.optimize()
+        if (model.status == GRB.TIME_LIMIT):
+            return X, model
         z = model.objVal
         model.addConstr(objective <= z + eps)
     
@@ -338,7 +307,7 @@ def saturation_stratification(instance):
     M = len(instance) # number of panels
     N = len(instance[0]) # number of people
     
-    grb.setParam("OutputFlag", 1)
+    grb.setParam("OutputFlag", 0)
     eps = 0.0001
 
     fixed_people = 0 # counter for fixed agents
@@ -348,6 +317,7 @@ def saturation_stratification(instance):
     while (fixed_people < N):
         currently_fixed = fixed_people
         model = Model()
+        model.Params.TimeLimit = 120
         X = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=0., name="X") # Panel probabilities
         model.addConstr(sum(X[i] for i in range(M)) <= 1 + eps) # sum of probabilities should add up to one
         model.addConstr(sum(X[i] for i in range(M)) >= 1 - eps) # sum of probabilities should add up to one
@@ -364,6 +334,8 @@ def saturation_stratification(instance):
 
         model.setObjective(z, GRB.MAXIMIZE)
         model.optimize()
+        if (model.status == GRB.TIME_LIMIT):
+            return X, model
         objectiveValue = model.objVal #maxmin value
 
         for i in range(N):
@@ -371,6 +343,7 @@ def saturation_stratification(instance):
                 continue
             
             new_model = Model() # new model to decide if agent i is saturated in this round or not
+            new_model.Params.TimeLimit = 120
             new_X = new_model.addMVar(M, vtype=GRB.CONTINUOUS, lb=0., name="new_X") # Panel probabilities
             new_model.addConstr(sum(new_X[j] for j in range(M)) <= 1 + eps) # sum of probabilities should add up to one
             new_model.addConstr(sum(new_X[j] for j in range(M)) >= 1 - eps) # sum of probabilities should add up to one
@@ -386,6 +359,8 @@ def saturation_stratification(instance):
             
             new_model.setObjective(funcs[i], GRB.MAXIMIZE) # now, maximize the value function for agent i
             new_model.optimize()
+            if (new_model.status == GRB.TIME_LIMIT):
+                return X, model
             objective_value_new = new_model.objVal
 
             # if agent i can not improve its probability value, it is saturated.
@@ -397,113 +372,4 @@ def saturation_stratification(instance):
         if (currently_fixed == fixed_people):
             return X, model
     return X, model
-
-"""
-Helper method to get sorted allocation values list
-"""
-def get_allocation_values(allocation, instance):
-    values = []
-    for i in range(len(instance)):
-        assigned = []
-        value = 0
-        for j in range(len(instance[0])):
-            if allocation[i][j].X > 0.5:
-                assigned.append(j+1)
-                value += instance[i][j]
-        values.append(value)
-    values.sort()
-    return values
-
-"""
-Helper method to show results of allocations
-"""
-def print_allocation_result(allocation, instance):
-    print("*********************")
-    print("RESULT ALLOCATION PROBLEM: ")
-    print("")
-    print(allocation.X)
-    print("")
-
-    values = get_allocation_values(allocation, instance)
-
-    print("LEXIMIN SORTED VALUES: ")
-    print(values)
-
-"""
-Helper method for finding each person's probability of being chosen
-"""
-
-def get_stratification_probabilities(X, instance):
-    people_probabilities = [0]*len(instance[0])
-    for i in range(len(instance)):
-        for j in range(len(instance[0])):
-            people_probabilities[j] += X.x[i] * instance[i][j]
-    people_probabilities.sort()
-    return people_probabilities
-
-"""
-Helper method for printing stratification results
-"""
-
-def print_stratification_result(X, instance):
-    print("*********************")
-    print("RESULT STRATIFICATION PROBLEM: ")
-    print("")
-    print("Number of possible panels: ", str(len(instance)))
-    print("")
-    print("Each panel's probability value: ")
-    print(X.x)
-    print("")
-    print("Number of people: ", str(len(instance[0])))
-    print("")
-    print("List of each persons probability: ")
-    print(get_stratification_probabilities(X, instance))
-    print("")
-
-if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument("problemtype", type=str, help="problem type, either allocation or stratification")
-    parser.add_argument("solvertype", type=str, help="solver algorithm, either oo (ordered outcomes), ov (ordered values), sat (saturation)")
-    parser.add_argument("filename", type=str, help="filename input (str)")
-    args = parser.parse_args()
-    filename = args.filename
-    problemtype = args.problemtype
-    solvertype = args.solvertype
-    
-    #ALLOCATIONS
-    if (problemtype == "allocations"):
-        instance = read_csv("examples/allocations/" + filename)
-
-        #ORDERED OUTCOMES METHOD
-        if (solvertype == "oo"):
-            A, model = ordered_outcomes_allocation(instance)
-        
-        #ORDERED VALUES METHOD
-        elif (solvertype == "ov"):
-            values_list = create_integer_func_values(instance)
-            A, model = ordered_values_allocation(instance, values_list)
-        
-        #SATURATION METHOD
-        elif (solvertype == "sat"):
-            A, model = saturation_allocation(instance)
-        
-        print_allocation_result(A, instance)
-    
-    #STRATIFICATIONS
-    elif (problemtype == "stratifications"):
-        instance = read_csv("examples/stratifications/" + filename)
-
-        #ORDERED OUTCOMES METHOD
-        if (solvertype == "oo"):
-            X, model = ordered_outcomes_stratification(instance)
-        
-        #ORDERED VALUES METHOD
-        elif (solvertype == "ov"):
-            X, model = ordered_values_stratification(instance)
-
-        #SATURATION METHOD
-        elif (solvertype == "sat"):
-            X, model = saturation_stratification(instance)
-        
-        print_stratification_result(X, instance)
     

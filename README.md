@@ -15,37 +15,37 @@ Some example data files are provided to run the different algorithms.
 
 Running the ordered outcomes method using the large allocation example:
 ```
-$ python implementations.py allocations oo large.csv
+$ python solver.py allocations oo large
 
 ```
 
 Running the ordered values method with the large allocation example:
 ```
-$ python implementations.py allocations ov large.csv
+$ python solver.py allocations ov large
 
 ```
 
 Running the saturation method using the large convex allocation example:
 ```
-$ python implementations.py allocations sat large_convex.csv
+$ python solver.py allocations sat large_convex
 
 ```
 
 Running the ordered outcome method using the large stratification example:
 ```
-$ python implementations.py stratifications oo large.csv
+$ python solver.py stratifications oo large
 
 ```
 
 Running the ordered values method using the large stratification example:
 ```
-$ python implementations.py stratifications ov large.csv
+$ python solver.py stratifications ov large
 
 ```
 
 Running the saturation method using the large convex stratification example:
 ```
-$ python implementations.py stratifications sat large_convex.csv
+$ python solver.py stratifications sat large_convex
 
 ```
 
