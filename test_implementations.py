@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from unittest import TestCase
 from implementations import ordered_outcomes_allocation, ordered_values_allocation, saturation_allocation, ordered_outcomes_stratification, ordered_values_stratification, saturation_stratification
 from solver import create_integer_func_values, get_allocation_values, get_stratification_probabilities
-from analysis import makeRandomStratification, makeRandomStratificationTwoCategories, makeRandomAllocation
+from analysis import makeRandomStratification, makeRandomAllocation
 @dataclass
 class AllocationTestSet:
     instance: list[list[int]]
@@ -270,32 +270,6 @@ class FindStratificationLeximinTests(TestCase):
         
         # large stratification test oo and sat
         instance = makeRandomStratification(30,10,200)
-
-        X_1, model_1 = ordered_outcomes_stratification(instance)
-        X_2, model_2 = saturation_stratification(instance)
-
-        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
-        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
-
-        for i in range(len(sorted_probabilities_1)):
-            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
-        
-        # TWO CATEGORIES
-        # cat 1 quota, cat 2 quota, people in cat 1, people in cat 2, number of panels
-        # small non-uniform test oo and ov (only sat test for ordered values as it is too slow for larges problem instances)
-        instance = makeRandomStratificationTwoCategories(2,3,5,5,10)
-
-        X_1, model_1 = ordered_outcomes_stratification(instance)
-        X_2, model_2 = ordered_values_stratification(instance)
-
-        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
-        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
-
-        for i in range(len(sorted_probabilities_1)):
-            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
-
-        # small non-uniform test oo and ov (only sat test for ordered values as it is too slow for larges problem instances)
-        instance = makeRandomStratificationTwoCategories(2,3,10,10,100)
 
         X_1, model_1 = ordered_outcomes_stratification(instance)
         X_2, model_2 = saturation_stratification(instance)

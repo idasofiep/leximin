@@ -79,7 +79,7 @@ def get_stratification_probabilities(X, instance):
     people_probabilities = [0]*len(instance[0])
     for i in range(len(instance)):
         for j in range(len(instance[0])):
-            people_probabilities[j] += round(X.x[i] * instance[i][j], 2)
+            people_probabilities[j] += round(X.x[i] * instance[i][j], 4)
     people_probabilities.sort()
     return people_probabilities
 

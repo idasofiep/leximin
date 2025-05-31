@@ -37,7 +37,7 @@ def ordered_outcomes_allocation(instance):
     eps = 0.001
 
     model = Model()
-    # model.Params.TimeLimit = 120
+    model.Params.TimeLimit = 120
     # model.setParam("Method", 2)
     A = model.addMVar((M,N), vtype=GRB.BINARY, lb=0., name="A") # Allocation matrix.
     t = model.addMVar(M, vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, name="t") # list of t variables of length M, one for each agent. All real numbers. 
@@ -140,7 +140,7 @@ def ordered_values_allocation(instance, values_list):
     eps = 0.0001
 
     model = Model()
-    # model.Params.TimeLimit = 120
+    model.Params.TimeLimit = 120
     A = model.addMVar((M,N), vtype=GRB.BINARY, lb=0., name="A") # Allocation matrix.
     h = model.addMVar((R,M), vtype=GRB.CONTINUOUS, lb=0., name="h") # h matrix
 
@@ -183,7 +183,7 @@ def ordered_values_stratification(instance):
     N = len(instance[0]) # number of people
 
     grb.setParam("OutputFlag", 0)
-    R = 1000 # number of panels to draw from in lottery, this value could also be set an input value
+    R = 100 # number of panels to draw from in lottery, this value could also be set an input value
     eps = 0.0001
 
     model = Model()
@@ -239,6 +239,7 @@ def saturation_allocation(instance):
     while (fixed_agents < M):
         currently_fixed = fixed_agents
         model = Model()
+        model.Params.TimeLimit = 120
         A = model.addMVar((M,N), vtype=GRB.BINARY, name="A") # Allocation matrix.
         model.addConstrs((sum(A[i,j] for i in range(M)) <= 1 + eps) for j in range(N)) # N constraints, ensure no item can be allocated to more than one agent.
         model.addConstrs((sum(A[i,j] for i in range(M)) >= 1 - eps) for j in range(N)) # N constraints, ensure all items must be allocated
@@ -254,6 +255,8 @@ def saturation_allocation(instance):
 
         model.setObjective(z, GRB.MAXIMIZE)
         model.optimize()
+        if (model.status == GRB.TIME_LIMIT):
+            return A, model
         objectiveValue = model.objVal
 
         for i in range(M):
@@ -261,6 +264,7 @@ def saturation_allocation(instance):
                 continue
             
             new_model = Model()
+            new_model.Params.TimeLimit = 120
             new_A = new_model.addMVar((M,N), vtype=GRB.BINARY, name="new_A") # Allocation matrix.
             new_model.addConstrs((sum(new_A[k,j] for k in range(M)) <= 1 + eps) for j in range(N)) # N constraints, ensure no item can be allocated to more than one agent.
             new_model.addConstrs((sum(new_A[k,j] for k in range(M)) >= 1 - eps) for j in range(N)) # N constraints, ensure all items must be allocated
@@ -274,6 +278,8 @@ def saturation_allocation(instance):
             
             new_model.setObjective(funcs[i], GRB.MAXIMIZE)
             new_model.optimize()
+            if (new_model.status == GRB.TIME_LIMIT):
+                return A, model
             new_objective_value = new_model.objVal
 
             if ((new_objective_value < objectiveValue + eps) & (new_objective_value > objectiveValue - eps)):
