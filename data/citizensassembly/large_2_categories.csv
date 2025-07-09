@@ -1,0 +1,10 @@
+category,feature,min,max
+gender,female,98,200
+gender,male,98,200
+leaning,liberal,98,200
+leaning,conservative,98,200
+living,south,48,200
+living,north,48,200
+living,east,48,200
+living,west,48,200
+

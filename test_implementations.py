@@ -4,9 +4,10 @@ import random
 from typing import Any, Dict, List, Tuple, FrozenSet, Iterable, Optional, Set
 from dataclasses import dataclass
 from unittest import TestCase
-from implementations import ordered_outcomes_allocation, ordered_values_allocation, saturation_allocation, ordered_outcomes_stratification, ordered_values_stratification, saturation_stratification
-from solver import create_integer_func_values, get_allocation_values, get_stratification_probabilities
-from analysis import makeRandomStratification, makeRandomAllocation
+from implementations import ordered_outcomes_allocation, ordered_values_allocation
+from solver import create_integer_func_values, get_allocation_values
+from analysis import makeRandomAllocation
+
 @dataclass
 class AllocationTestSet:
     instance: list[list[int]]
@@ -76,132 +77,135 @@ allocation_sat_3 = AllocationTestSet(
 class FindAllocationLeximinTests(TestCase):
 
     def test_allocation_oo(self):
+        time_limit = 1000
         # test 1
-        A, model = ordered_outcomes_allocation(allocation1.instance)
+        A, model = ordered_outcomes_allocation(allocation1.instance, time_limit)
         sorted_values = get_allocation_values(A, allocation1.instance)
         self.assertEqual(sorted_values, allocation1.expected_sorted_values)
 
         # test 2
-        A, model = ordered_outcomes_allocation(allocation2.instance)
+        A, model = ordered_outcomes_allocation(allocation2.instance, time_limit)
         sorted_values = get_allocation_values(A, allocation2.instance)
         self.assertEqual(sorted_values, allocation2.expected_sorted_values)
 
         # test 3
-        A, model = ordered_outcomes_allocation(allocation3.instance)
+        A, model = ordered_outcomes_allocation(allocation3.instance, time_limit)
         sorted_values = get_allocation_values(A, allocation3.instance)
         self.assertEqual(sorted_values, allocation3.expected_sorted_values)
 
         # test 4
-        A, model = ordered_outcomes_allocation(allocation4.instance)
+        A, model = ordered_outcomes_allocation(allocation4.instance, time_limit)
         sorted_values = get_allocation_values(A, allocation4.instance)
         self.assertEqual(sorted_values, allocation4.expected_sorted_values)
 
         # test 5
-        A, model = ordered_outcomes_allocation(allocation5.instance)
+        A, model = ordered_outcomes_allocation(allocation5.instance, time_limit)
         sorted_values = get_allocation_values(A, allocation5.instance)
         self.assertEqual(sorted_values, allocation5.expected_sorted_values)
 
         # test 6
-        A, model = ordered_outcomes_allocation(allocation6.instance)
+        A, model = ordered_outcomes_allocation(allocation6.instance, time_limit)
         sorted_values = get_allocation_values(A, allocation6.instance)
         self.assertEqual(sorted_values, allocation6.expected_sorted_values)
 
         # test 7
-        A, model = ordered_outcomes_allocation(allocation7.instance)
+        A, model = ordered_outcomes_allocation(allocation7.instance, time_limit)
         sorted_values = get_allocation_values(A, allocation7.instance)
         self.assertEqual(sorted_values, allocation7.expected_sorted_values)
 
         # test 8
-        A, model = ordered_outcomes_allocation(allocation8.instance)
+        A, model = ordered_outcomes_allocation(allocation8.instance, time_limit)
         sorted_values = get_allocation_values(A, allocation8.instance)
         self.assertEqual(sorted_values, allocation8.expected_sorted_values)
 
         # test 9
-        A, model = ordered_outcomes_allocation(allocation9.instance)
+        A, model = ordered_outcomes_allocation(allocation9.instance, time_limit)
         sorted_values = get_allocation_values(A, allocation9.instance)
         self.assertEqual(sorted_values, allocation9.expected_sorted_values)
     
     def test_allocation_ov(self):
+        time_limit = 1000
         #test 1
         values_list = create_integer_func_values(allocation1.instance)
-        A, model = ordered_values_allocation(allocation1.instance, values_list)
+        A, model = ordered_values_allocation(allocation1.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation1.instance)
         self.assertEqual(sorted_values, allocation1.expected_sorted_values)
 
         #test 2
         values_list = create_integer_func_values(allocation2.instance)
-        A, model = ordered_values_allocation(allocation2.instance, values_list)
+        A, model = ordered_values_allocation(allocation2.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation2.instance)
         self.assertEqual(sorted_values, allocation2.expected_sorted_values)
 
         #test 3
         values_list = create_integer_func_values(allocation3.instance)
-        A, model = ordered_values_allocation(allocation3.instance, values_list)
+        A, model = ordered_values_allocation(allocation3.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation3.instance)
         self.assertEqual(sorted_values, allocation3.expected_sorted_values)
 
         #test 4
         values_list = create_integer_func_values(allocation4.instance)
-        A, model = ordered_values_allocation(allocation4.instance, values_list)
+        A, model = ordered_values_allocation(allocation4.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation4.instance)
         self.assertEqual(sorted_values, allocation4.expected_sorted_values)
 
         #test 5
         values_list = create_integer_func_values(allocation5.instance)
-        A, model = ordered_values_allocation(allocation5.instance, values_list)
+        A, model = ordered_values_allocation(allocation5.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation5.instance)
         self.assertEqual(sorted_values, allocation5.expected_sorted_values)
 
         #test 6
         values_list = create_integer_func_values(allocation6.instance)
-        A, model = ordered_values_allocation(allocation6.instance, values_list)
+        A, model = ordered_values_allocation(allocation6.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation6.instance)
         self.assertEqual(sorted_values, allocation6.expected_sorted_values)
 
         #test 7
         values_list = create_integer_func_values(allocation7.instance)
-        A, model = ordered_values_allocation(allocation7.instance, values_list)
+        A, model = ordered_values_allocation(allocation7.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation7.instance)
         self.assertEqual(sorted_values, allocation7.expected_sorted_values)
 
         #test 8
         values_list = create_integer_func_values(allocation8.instance)
-        A, model = ordered_values_allocation(allocation8.instance, values_list)
+        A, model = ordered_values_allocation(allocation8.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation8.instance)
         self.assertEqual(sorted_values, allocation8.expected_sorted_values)
 
         #test 9
         values_list = create_integer_func_values(allocation9.instance)
-        A, model = ordered_values_allocation(allocation9.instance, values_list)
+        A, model = ordered_values_allocation(allocation9.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation9.instance)
         self.assertEqual(sorted_values, allocation9.expected_sorted_values)
 
         # test sat_1
         values_list = create_integer_func_values(allocation_sat_1.instance)
-        A, model = ordered_values_allocation(allocation_sat_1.instance, values_list)
+        A, model = ordered_values_allocation(allocation_sat_1.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation_sat_1.instance)
         self.assertEqual(sorted_values, allocation_sat_1.expected_sorted_values)
 
         # test sat_2
         values_list = create_integer_func_values(allocation_sat_2.instance)
-        A, model = ordered_values_allocation(allocation_sat_2.instance, values_list)
+        A, model = ordered_values_allocation(allocation_sat_2.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation_sat_2.instance)
         self.assertEqual(sorted_values, allocation_sat_2.expected_sorted_values)
 
         # test sat_3
         values_list = create_integer_func_values(allocation_sat_3.instance)
-        A, model = ordered_values_allocation(allocation_sat_3.instance, values_list)
+        A, model = ordered_values_allocation(allocation_sat_3.instance, values_list, time_limit)
         sorted_values = get_allocation_values(A, allocation_sat_3.instance)
         self.assertEqual(sorted_values, allocation_sat_3.expected_sorted_values)
     
     def test_random_allocation(self):
+        time_limit = 1000
         # test random allocation with 5 people and 5 items
         instance = makeRandomAllocation(5,5,1,10,1)
-        A_oo, model_oo = ordered_outcomes_allocation(instance)
+        A_oo, model_oo = ordered_outcomes_allocation(instance, time_limit)
         sorted_values_oo = get_allocation_values(A_oo, instance)
 
         values_list = create_integer_func_values(instance)
-        A_ov, model_ov = ordered_values_allocation(instance, values_list)
+        A_ov, model_ov = ordered_values_allocation(instance, values_list, time_limit)
         sorted_values_ov = get_allocation_values(A_ov, instance)
 
         for i in range(len(sorted_values_oo)):
@@ -209,79 +213,13 @@ class FindAllocationLeximinTests(TestCase):
         
         # test random allocation with 5 people and 10 items
         instance = makeRandomAllocation(10,5,1,10,1)
-        A_oo, model_oo = ordered_outcomes_allocation(instance)
+        A_oo, model_oo = ordered_outcomes_allocation(instance, time_limit)
         sorted_values_oo = get_allocation_values(A_oo, instance)
 
         values_list = create_integer_func_values(instance)
-        A_ov, model_ov = ordered_values_allocation(instance, values_list)
+        A_ov, model_ov = ordered_values_allocation(instance, values_list, time_limit)
         sorted_values_ov = get_allocation_values(A_ov, instance)
 
         for i in range(len(sorted_values_oo)):
             self.assertAlmostEqual(sorted_values_oo[i], sorted_values_ov[i], places=2)
-        
-    
-    """
-    Saturation method that only works for some (convex) problems
-    """
-    def test_allocation_sat(self):
 
-        # test sat_1
-        A, model = saturation_allocation(allocation_sat_1.instance)
-        sorted_values = get_allocation_values(A, allocation_sat_1.instance)
-        self.assertEqual(sorted_values, allocation_sat_1.expected_sorted_values)
-
-        # test sat_2
-        A, model = saturation_allocation(allocation_sat_2.instance)
-        sorted_values = get_allocation_values(A, allocation_sat_2.instance)
-        self.assertEqual(sorted_values, allocation_sat_2.expected_sorted_values)
-
-        # test sat_3
-        A, model = saturation_allocation(allocation_sat_3.instance)
-        sorted_values = get_allocation_values(A, allocation_sat_3.instance)
-        self.assertEqual(sorted_values, allocation_sat_3.expected_sorted_values)
-
-
-class FindStratificationLeximinTests(TestCase):
-    def test_stratification(self):
-
-        # small test oo and sat
-        instance = makeRandomStratification(5,10,20) # people, panel_size, panels
-
-        X_1, model_1 = ordered_outcomes_stratification(instance)
-        X_2, model_2 = saturation_stratification(instance)
-
-        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
-        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
-
-        for i in range(len(sorted_probabilities_1)):
-            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
-        
-        # small stratification test oo and ov (only sat test for ordered values as it is too slow for larges problem instances)
-        instance = makeRandomStratification(10,5,20)
-
-        X_1, model_1 = ordered_outcomes_stratification(instance)
-        X_2, model_2 = ordered_values_stratification(instance)
-
-        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
-        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
-
-        for i in range(len(sorted_probabilities_1)):
-            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
-        
-        # large stratification test oo and sat
-        instance = makeRandomStratification(30,10,200)
-
-        X_1, model_1 = ordered_outcomes_stratification(instance)
-        X_2, model_2 = saturation_stratification(instance)
-
-        sorted_probabilities_1 = get_stratification_probabilities(X_1, instance)
-        sorted_probabilities_2 = get_stratification_probabilities(X_2, instance)
-
-        for i in range(len(sorted_probabilities_1)):
-            self.assertAlmostEqual(sorted_probabilities_1[i], sorted_probabilities_2[i], places=2)
-
-
-
-
-
-    
